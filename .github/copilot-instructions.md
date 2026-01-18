@@ -109,6 +109,7 @@ When adding a new academic platform searcher:
 ```python
 # academic_platforms/example.py
 from typing import List
+from datetime import datetime
 import requests
 from ..paper import Paper
 
@@ -194,14 +195,18 @@ async with httpx.AsyncClient() as client:
 
 ### Paper object creation
 ```python
+from datetime import datetime
+
 paper = Paper(
-    title="Paper Title",
     paper_id="unique-id",
+    title="Paper Title",
     authors=["Author One", "Author Two"],
     abstract="Paper abstract text",
-    url="https://example.com/paper",
+    doi="10.1234/example.doi",
+    published_date=datetime(2024, 1, 1),
     pdf_url="https://example.com/paper.pdf",
-    published_date="2024-01-01"
+    url="https://example.com/paper",
+    source="example_platform"
 )
 ```
 
@@ -224,7 +229,7 @@ except requests.RequestException as e:
 
 ## MCP Integration Notes
 
-- This server uses FastMCP framework for MCP implementation
+- This server uses the FastMCP framework from the MCP Python SDK
 - Tools are registered using `@mcp.tool()` decorator
 - All tool functions should be async
 - Tool docstrings are exposed to MCP clients as tool descriptions
