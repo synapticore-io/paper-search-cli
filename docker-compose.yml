@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # SurrealDB - Knowledge graph and memory storage
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    container_name: paper-search-surrealdb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    command: start --log trace --user root --pass root file:/data/database.db
+    volumes:
+      - surrealdb-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - paper-search-network
+
+  # Redis - Caching for SearXNG
+  redis:
+    image: valkey/valkey:8-alpine
+    container_name: paper-search-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    command: valkey-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - paper-search-network
+
+  # SearXNG - Privacy-focused metasearch engine
+  searxng:
+    image: searxng/searxng:latest
+    container_name: paper-search-searxng
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET=${SEARXNG_SECRET:-$(openssl rand -hex 32)}
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - paper-search-network
+
+  # Paper Search MCP Server
+  paper-search-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paper-search-mcp-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - SURREALDB_URL=ws://surrealdb:8000/rpc
+      - SURREALDB_USER=root
+      - SURREALDB_PASS=root
+      - SURREALDB_NS=paper_search
+      - SURREALDB_DB=knowledge
+      - SEARXNG_URL=http://searxng:8080
+      - SEMANTIC_SCHOLAR_API_KEY=${SEMANTIC_SCHOLAR_API_KEY:-}
+    volumes:
+      - ./downloads:/app/downloads
+      - ./data:/app/data
+    depends_on:
+      surrealdb:
+        condition: service_healthy
+      searxng:
+        condition: service_healthy
+    networks:
+      - paper-search-network
+
+volumes:
+  surrealdb-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  paper-search-network:
+    driver: bridge

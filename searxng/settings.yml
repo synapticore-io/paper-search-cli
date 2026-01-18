@@ -1,0 +1,85 @@
+# SearXNG Configuration for Paper Search MCP
+# https://docs.searxng.org/admin/settings/settings.html
+
+use_default_settings: true
+
+general:
+  instance_name: "Paper Search SearXNG"
+  privacypolicy_url: false
+  donation_url: false
+  contact_url: false
+  enable_metrics: false
+
+search:
+  safe_search: 0
+  autocomplete: "google"
+  default_lang: "en"
+  formats:
+    - html
+    - json
+
+server:
+  port: 8080
+  bind_address: "0.0.0.0"
+  secret_key: "changeme"  # Will be overridden by environment variable
+  limiter: false
+  image_proxy: true
+
+ui:
+  static_use_hash: true
+  default_theme: simple
+  theme_args:
+    simple_style: dark
+
+outgoing:
+  request_timeout: 3.0
+  max_request_timeout: 10.0
+  useragent_suffix: "PaperSearch"
+
+enabled_plugins:
+  - 'Hash plugin'
+  - 'Self Information'
+  - 'Tracker URL remover'
+  - 'Hostname replace'
+
+# Enable science-focused engines
+engines:
+  - name: google scholar
+    engine: google_scholar
+    shortcut: gsc
+    categories: science
+    
+  - name: semantic scholar
+    engine: semantic_scholar
+    disabled: false
+    shortcut: se
+    categories: science
+    
+  - name: arxiv
+    engine: arxiv
+    shortcut: arx
+    categories: science
+    timeout: 10.0
+    
+  - name: pubmed
+    engine: pubmed
+    shortcut: pub
+    categories: science
+    number_of_results: 10
+    timeout: 10.0
+    
+  - name: google
+    engine: google
+    shortcut: go
+    
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wp
+    
+  - name: wikidata
+    engine: wikidata
+    shortcut: wd

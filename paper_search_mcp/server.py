@@ -1,7 +1,6 @@
 # paper_search_mcp/server.py
 from typing import List, Dict, Optional
-import httpx
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from .academic_platforms.arxiv import ArxivSearcher
 from .academic_platforms.pubmed import PubMedSearcher
 from .academic_platforms.biorxiv import BioRxivSearcher
@@ -10,9 +9,12 @@ from .academic_platforms.google_scholar import GoogleScholarSearcher
 from .academic_platforms.iacr import IACRSearcher
 from .academic_platforms.semantic import SemanticSearcher
 from .academic_platforms.crossref import CrossRefSearcher
+from .academic_platforms.searxng import SearXNGSearcher
 
 # from .academic_platforms.hub import SciHubSearcher
 from .paper import Paper
+from .knowledge import KnowledgeStore
+from .document_processor import DocumentProcessor, DOCLING_AVAILABLE
 
 # Initialize MCP server
 mcp = FastMCP("paper_search_server")
@@ -26,18 +28,25 @@ google_scholar_searcher = GoogleScholarSearcher()
 iacr_searcher = IACRSearcher()
 semantic_searcher = SemanticSearcher()
 crossref_searcher = CrossRefSearcher()
+searxng_searcher = SearXNGSearcher()
 # scihub_searcher = SciHubSearcher()
 
+# Initialize knowledge store
+knowledge_store = KnowledgeStore()
 
-# Asynchronous helper to adapt synchronous searchers
+# Initialize document processor if available
+doc_processor = DocumentProcessor() if DOCLING_AVAILABLE else None
+
+
+
+# Asynchronous helper to adapt async searchers
 async def async_search(searcher, query: str, max_results: int, **kwargs) -> List[Dict]:
-    async with httpx.AsyncClient() as client:
-        # Assuming searchers use requests internally; we'll call synchronously for now
-        if 'year' in kwargs:
-            papers = searcher.search(query, year=kwargs['year'], max_results=max_results)
-        else:
-            papers = searcher.search(query, max_results=max_results)
-        return [paper.to_dict() for paper in papers]
+    # Searchers now use httpx internally and are async
+    if 'year' in kwargs:
+        papers = await searcher.search(query, year=kwargs['year'], max_results=max_results)
+    else:
+        papers = await searcher.search(query, max_results=max_results)
+    return [paper.to_dict() for paper in papers]
 
 
 # Tool definitions
@@ -124,9 +133,8 @@ async def search_iacr(
     Returns:
         List of paper metadata in dictionary format.
     """
-    async with httpx.AsyncClient() as client:
-        papers = iacr_searcher.search(query, max_results, fetch_details)
-        return [paper.to_dict() for paper in papers] if papers else []
+    papers = await iacr_searcher.search(query, max_results, fetch_details)
+    return [paper.to_dict() for paper in papers] if papers else []
 
 
 @mcp.tool()
@@ -139,8 +147,7 @@ async def download_arxiv(paper_id: str, save_path: str = "./downloads") -> str:
     Returns:
         Path to the downloaded PDF file.
     """
-    async with httpx.AsyncClient() as client:
-        return arxiv_searcher.download_pdf(paper_id, save_path)
+    return await arxiv_searcher.download_pdf(paper_id, save_path)
 
 
 @mcp.tool()
@@ -154,7 +161,7 @@ async def download_pubmed(paper_id: str, save_path: str = "./downloads") -> str:
         str: Message indicating that direct PDF download is not supported.
     """
     try:
-        return pubmed_searcher.download_pdf(paper_id, save_path)
+        return await pubmed_searcher.download_pdf(paper_id, save_path)
     except NotImplementedError as e:
         return str(e)
 
@@ -169,7 +176,7 @@ async def download_biorxiv(paper_id: str, save_path: str = "./downloads") -> str
     Returns:
         Path to the downloaded PDF file.
     """
-    return biorxiv_searcher.download_pdf(paper_id, save_path)
+    return await biorxiv_searcher.download_pdf(paper_id, save_path)
 
 
 @mcp.tool()
@@ -182,7 +189,7 @@ async def download_medrxiv(paper_id: str, save_path: str = "./downloads") -> str
     Returns:
         Path to the downloaded PDF file.
     """
-    return medrxiv_searcher.download_pdf(paper_id, save_path)
+    return await medrxiv_searcher.download_pdf(paper_id, save_path)
 
 
 @mcp.tool()
@@ -195,7 +202,7 @@ async def download_iacr(paper_id: str, save_path: str = "./downloads") -> str:
     Returns:
         Path to the downloaded PDF file.
     """
-    return iacr_searcher.download_pdf(paper_id, save_path)
+    return await iacr_searcher.download_pdf(paper_id, save_path)
 
 
 @mcp.tool()
@@ -209,7 +216,7 @@ async def read_arxiv_paper(paper_id: str, save_path: str = "./downloads") -> str
         str: The extracted text content of the paper.
     """
     try:
-        return arxiv_searcher.read_paper(paper_id, save_path)
+        return await arxiv_searcher.read_paper(paper_id, save_path)
     except Exception as e:
         print(f"Error reading paper {paper_id}: {e}")
         return ""
@@ -225,7 +232,7 @@ async def read_pubmed_paper(paper_id: str, save_path: str = "./downloads") -> st
     Returns:
         str: Message indicating that direct paper reading is not supported.
     """
-    return pubmed_searcher.read_paper(paper_id, save_path)
+    return await pubmed_searcher.read_paper(paper_id, save_path)
 
 
 @mcp.tool()
@@ -315,7 +322,7 @@ async def download_semantic(paper_id: str, save_path: str = "./downloads") -> st
     Returns:
         Path to the downloaded PDF file.
     """ 
-    return semantic_searcher.download_pdf(paper_id, save_path)
+    return await semantic_searcher.download_pdf(paper_id, save_path)
 
 
 @mcp.tool()
@@ -337,7 +344,7 @@ async def read_semantic_paper(paper_id: str, save_path: str = "./downloads") -> 
         str: The extracted text content of the paper.
     """
     try:
-        return semantic_searcher.read_paper(paper_id, save_path)
+        return await semantic_searcher.read_paper(paper_id, save_path)
     except Exception as e:
         print(f"Error reading paper {paper_id}: {e}")
         return ""
@@ -408,7 +415,7 @@ async def download_crossref(paper_id: str, save_path: str = "./downloads") -> st
         Use the DOI to access the paper through the publisher's website.
     """
     try:
-        return crossref_searcher.download_pdf(paper_id, save_path)
+        return await crossref_searcher.download_pdf(paper_id, save_path)
     except NotImplementedError as e:
         return str(e)
 
@@ -427,7 +434,147 @@ async def read_crossref_paper(paper_id: str, save_path: str = "./downloads") -> 
         CrossRef is a citation database and doesn't provide direct paper content.
         Use the DOI to access the paper through the publisher's website.
     """
-    return crossref_searcher.read_paper(paper_id, save_path)
+    return await crossref_searcher.read_paper(paper_id, save_path)
+
+
+# SearXNG metasearch tools
+@mcp.tool()
+async def search_searxng(query: str, max_results: int = 10, category: str = "science") -> List[Dict]:
+    """Search using SearXNG privacy-focused metasearch engine.
+
+    Args:
+        query: Search query string (e.g., 'quantum computing').
+        max_results: Maximum number of papers to return (default: 10).
+        category: Search category (default: 'science'). Options: science, general, files, etc.
+    Returns:
+        List of search results from multiple engines in dictionary format.
+    """
+    papers = await searxng_searcher.search(query, max_results, category)
+    return [paper.to_dict() for paper in papers] if papers else []
+
+
+# Knowledge management tools
+@mcp.tool()
+async def store_paper_knowledge(paper_data: Dict) -> str:
+    """Store a paper in the knowledge graph database.
+
+    Args:
+        paper_data: Dictionary with paper information (paper_id, title, authors, abstract, etc.)
+    Returns:
+        Record ID of the stored paper in SurrealDB.
+    """
+    return await knowledge_store.store_paper(paper_data)
+
+
+@mcp.tool()
+async def get_paper_knowledge(paper_id: str) -> Optional[Dict]:
+    """Retrieve a paper from the knowledge graph by its ID.
+
+    Args:
+        paper_id: Unique paper identifier.
+    Returns:
+        Paper data dictionary or None if not found.
+    """
+    return await knowledge_store.get_paper(paper_id)
+
+
+@mcp.tool()
+async def search_knowledge(query: str, limit: int = 10) -> List[Dict]:
+    """Search papers in the knowledge graph by keywords.
+
+    Args:
+        query: Search query string.
+        limit: Maximum number of results to return (default: 10).
+    Returns:
+        List of matching papers from the knowledge graph.
+    """
+    return await knowledge_store.search_papers(query, limit)
+
+
+@mcp.tool()
+async def add_concept_knowledge(name: str, description: str, category: str = "general") -> str:
+    """Add or update a concept in the knowledge graph.
+
+    Args:
+        name: Concept name.
+        description: Concept description.
+        category: Concept category (default: 'general').
+    Returns:
+        Record ID of the concept.
+    """
+    return await knowledge_store.add_concept(name, description, category)
+
+
+@mcp.tool()
+async def relate_paper_concept(paper_id: str, concept_name: str, strength: float = 1.0) -> str:
+    """Create a relationship between a paper and a concept.
+
+    Args:
+        paper_id: Paper record ID from knowledge graph.
+        concept_name: Name of the concept to relate.
+        strength: Relationship strength between 0 and 1 (default: 1.0).
+    Returns:
+        Relationship record ID.
+    """
+    return await knowledge_store.relate_paper_to_concept(paper_id, concept_name, strength)
+
+
+@mcp.tool()
+async def get_similar_papers_knowledge(paper_id: str, limit: int = 5) -> List[Dict]:
+    """Find papers similar to the given paper based on shared concepts.
+
+    Args:
+        paper_id: Paper record ID from knowledge graph.
+        limit: Maximum number of similar papers to return (default: 5).
+    Returns:
+        List of similar papers with shared concept counts.
+    """
+    return await knowledge_store.get_similar_papers(paper_id, limit)
+
+
+@mcp.tool()
+async def get_knowledge_stats() -> Dict:
+    """Get statistics about the knowledge graph.
+
+    Returns:
+        Dictionary with counts of papers, concepts, and relationships.
+    """
+    return await knowledge_store.get_knowledge_stats()
+
+
+# Document processing tools
+@mcp.tool()
+async def process_pdf_advanced(pdf_path: str) -> Dict:
+    """Process a PDF using advanced Docling parser for structured extraction.
+
+    Args:
+        pdf_path: Path to PDF file.
+    Returns:
+        Dictionary with extracted text, metadata, and structure (sections, tables, figures, references).
+        
+    Note:
+        Requires Docling to be installed. Falls back to basic PDF extraction if unavailable.
+    """
+    if not doc_processor:
+        return {"error": "Docling not available. Install with: pip install docling"}
+    
+    return await doc_processor.process_pdf(pdf_path)
+
+
+@mcp.tool()
+async def process_document_url(url: str, output_dir: str = "./downloads") -> Dict:
+    """Process a document from URL using Docling.
+
+    Args:
+        url: URL to document (supports PDF, DOCX, PPTX, HTML, etc.)
+        output_dir: Directory for temporary files (default: './downloads').
+    Returns:
+        Processed document data with text and metadata.
+    """
+    if not doc_processor:
+        return {"error": "Docling not available. Install with: pip install docling"}
+    
+    return await doc_processor.process_url(url, output_dir)
 
 
 if __name__ == "__main__":
