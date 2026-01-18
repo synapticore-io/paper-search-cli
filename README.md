@@ -18,6 +18,7 @@ A Model Context Protocol (MCP) server for searching and downloading academic pap
   - [For Development](#for-development)
     - [Setup Environment](#setup-environment)
     - [Install Dependencies](#install-dependencies)
+- [CLI Usage](#cli-usage)
 - [Contributing](#contributing)
 - [Demo](#demo)
 - [License](#license)
@@ -27,16 +28,17 @@ A Model Context Protocol (MCP) server for searching and downloading academic pap
 
 ## Overview
 
-`paper-search-mcp` is a Python-based MCP server that enables users to search and download academic papers from various platforms. It provides tools for searching papers (e.g., `search_arxiv`) and downloading PDFs (e.g., `download_arxiv`), making it ideal for researchers and AI-driven workflows. Built with the MCP Python SDK, it integrates seamlessly with LLM clients like Claude Desktop.
+`paper-search-mcp` is a Python-based MCP server and CLI tool that enables users to search and download academic papers from various platforms. It provides both an MCP server for LLM integration and a command-line interface for direct usage. Built with FastMCP and httpx, it offers async performance and seamless integration with AI-driven workflows.
 
 ---
 
 ## Features
 
-- **Multi-Source Support**: Search and download papers from arXiv, PubMed, bioRxiv, medRxiv, Google Scholar, IACR ePrint Archive, Semantic Scholar.
+- **Multi-Source Support**: Search and download papers from arXiv, PubMed, bioRxiv, medRxiv, Google Scholar, IACR ePrint Archive, Semantic Scholar, CrossRef.
+- **Command-Line Interface**: Use `paper-search` command for searching, downloading, and reading papers.
 - **Standardized Output**: Papers are returned in a consistent dictionary format via the `Paper` class.
-- **Asynchronous Tools**: Efficiently handles network requests using `httpx`.
-- **MCP Integration**: Compatible with MCP clients for LLM context enhancement.
+- **Asynchronous Performance**: All operations use `httpx` with async/await for efficient network requests.
+- **MCP Integration**: Compatible with MCP clients like Claude Desktop for LLM context enhancement.
 - **Extensible Design**: Easily add new academic platforms by extending the `academic_platforms` module.
 
 ---
@@ -114,6 +116,63 @@ For developers who want to modify the code or contribute:
    # Add development dependencies (optional)
    uv add pytest flake8
    ```
+
+---
+
+## CLI Usage
+
+After installation, you can use the `paper-search` command to search and download papers directly from your terminal:
+
+### Search for papers
+
+```bash
+# Search arXiv for machine learning papers
+paper-search search "machine learning" --source arxiv --max-results 10
+
+# Search PubMed for COVID-19 research
+paper-search search "COVID-19" --source pubmed --max-results 20
+
+# Search bioRxiv
+paper-search search "neural networks" --source biorxiv
+```
+
+### Download papers
+
+```bash
+# Download an arXiv paper
+paper-search download 2106.12345 --source arxiv --output ./papers
+
+# Download from bioRxiv
+paper-search download 10.1101/2021.01.01.123456 --source biorxiv
+```
+
+### Read paper text
+
+```bash
+# Read and extract text from a paper
+paper-search read 2106.12345 --source arxiv
+
+# Show full text
+paper-search read 2106.12345 --source arxiv --all
+```
+
+### List available sources
+
+```bash
+# See all supported paper sources
+paper-search list-sources
+```
+
+### Available sources
+
+- `arxiv` - arXiv preprint repository (search, download, read)
+- `pubmed` - PubMed biomedical literature (search)
+- `biorxiv` - bioRxiv biology preprints (search, download, read)
+- `medrxiv` - medRxiv health sciences preprints (search, download, read)
+- `google-scholar` - Google Scholar (search)
+- `iacr` - IACR ePrint cryptology archive (search, download, read)
+- `semantic` - Semantic Scholar AI research tool (search, download, read)
+- `crossref` - CrossRef citation service (search)
 
 ---
 
