@@ -205,9 +205,11 @@ def search(self, query: str, max_results: int = 10) -> List[Paper]:
 ### Server wraps synchronous searchers in async context
 ```python
 # In server.py, httpx is used as async wrapper
+# Note: The httpx.AsyncClient context is currently not actively used
+# but provides the async context for future enhancements
 async def async_search(searcher, query: str, max_results: int, **kwargs) -> List[Dict]:
     async with httpx.AsyncClient() as client:
-        # Searchers use requests internally
+        # Searchers use requests internally (synchronous calls)
         papers = searcher.search(query, max_results=max_results)
         return [paper.to_dict() for paper in papers]
 ```
