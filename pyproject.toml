@@ -22,6 +22,8 @@ dependencies = [
     "httpx[socks]>=0.28.1",
     "typer>=0.9.0",
     "rich>=13.0.0", # For better CLI output
+    "surrealdb>=0.3.0", # Knowledge graph and memory storage
+    "docling>=1.0.0", # Document processing and parsing
 ]
 
 [project.scripts]
