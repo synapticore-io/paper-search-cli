@@ -417,7 +417,7 @@ paper-search list-sources  # See which platforms support downloads
 
 ## Demo
 
-<img src="docs\images\demo.png" alt="Demo" width="800">
+<img src="docs/images/demo.png" alt="Demo" width="800">
 
 ## TODO
 
