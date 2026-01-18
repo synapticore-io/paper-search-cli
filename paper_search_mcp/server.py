@@ -122,9 +122,8 @@ async def search_iacr(
     Returns:
         List of paper metadata in dictionary format.
     """
-    async with httpx.AsyncClient() as client:
-        papers = iacr_searcher.search(query, max_results, fetch_details)
-        return [paper.to_dict() for paper in papers] if papers else []
+    papers = await iacr_searcher.search(query, max_results, fetch_details)
+    return [paper.to_dict() for paper in papers] if papers else []
 
 
 @mcp.tool()

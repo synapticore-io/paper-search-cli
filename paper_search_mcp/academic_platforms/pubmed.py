@@ -90,7 +90,7 @@ class PubMedSearcher(PaperSource):
                   "Please use the paper's DOI or URL to access the publisher's website.")
         raise NotImplementedError(message)
 
-    def read_paper(self, paper_id: str, save_path: str = "./downloads") -> str:
+    async def read_paper(self, paper_id: str, save_path: str = "./downloads") -> str:
         """Attempt to read and extract text from a PubMed paper.
 
         Args:

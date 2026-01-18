@@ -69,8 +69,7 @@ class IACRSearcher(PaperSource):
             if fetch_details:
                 # Fetch detailed information for this paper
                 logger.info(f"Fetching detailed info for paper {paper_id}")
-                import asyncio
-                detailed_paper = asyncio.run(self.get_paper_details(paper_id))
+                detailed_paper = await self.get_paper_details(paper_id)
                 if detailed_paper:
                     return detailed_paper
                 else:
